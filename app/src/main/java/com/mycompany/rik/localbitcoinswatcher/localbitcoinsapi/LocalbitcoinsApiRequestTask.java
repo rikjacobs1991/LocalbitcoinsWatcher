@@ -42,8 +42,7 @@ Sending signature
     2.Apiauth-Nonce: The nonce in this particular request.
     3.Apiauth-Signature: HMAC signature.
  */
-public class LocalbitcoinsApiRequestTask extends AsyncTask<String, Integer, JSONObject> {
-    private static int timeOutTime = 5000;
+public class LocalbitcoinsApiRequestTask extends AsyncTask<String, Integer, String> {
     private final static String baseUrl = "https://localbitcoins.com";
     private LocalbitcoinsApiListener localbitcoinsApiListener;
     private LocalbitcoinsApiRequest localbitcoinsApiRequest;
@@ -51,14 +50,16 @@ public class LocalbitcoinsApiRequestTask extends AsyncTask<String, Integer, JSON
 
     public enum RequestType{
         POST,
-        GET
+        POST_SIGNED,
+        GET,
+        GET_SIGNED
     }
 
     public LocalbitcoinsApiRequestTask(LocalbitcoinsApiRequest localbitcoinsApiRequest){
         this.localbitcoinsApiRequest = localbitcoinsApiRequest;
     }
 
-    protected JSONObject doInBackground(String... request) {
+    protected String doInBackground(String... request) {
 
         String response = "";
 
@@ -70,59 +71,46 @@ public class LocalbitcoinsApiRequestTask extends AsyncTask<String, Integer, JSON
         String url = baseUrl + localbitcoinsApiRequest.relativePath + localbitcoinsApiRequest.requestParams;
 
         switch (localbitcoinsApiRequest.requestType){
-            case POST:
-                response = post(url, map);
-                break;
 
             case GET:
-                response = get(url, map);
+                response = get(url);
+                break;
+
+            case GET_SIGNED:
+                response = getSigned(url, map);
+                break;
+
+            case POST:
+                response = post(url);
+                break;
+
+            case POST_SIGNED:
+                response = postSigned(url, map);
                 break;
         }
 
-        JSONObject a;
-
-        try {
-            a = new JSONObject(response);
-        } catch (JSONException e) {
-            e.printStackTrace();
-            return null;
-        }
-        return a;
+        return response;
     }
 
     protected void onProgressUpdate(Integer... progress) {
     }
 
-    protected void onPostExecute(JSONObject result) {
+    protected void onPostExecute(String result) {
         localbitcoinsApiListener.JSONFetched(result);
     }
 
-    public String get(String requestURL,  HashMap<String, String> postDataParams) {
+    public String get(String requestURL) {
         URL url;
         String response = "";
         try {
             url = new URL(requestURL);
 
-
             HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
             conn.setReadTimeout(15000);
             conn.setConnectTimeout(15000);
             conn.setRequestMethod("GET");
-            /*conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-            for(Map.Entry<String, String> entry : postDataParams.entrySet()){
-                conn.setRequestProperty(URLEncoder.encode(entry.getKey(), "UTF-8"),
-                        URLEncoder.encode(entry.getValue(), "UTF-8"));
-            }
-            conn.setDoInput(true);
-            conn.setDoOutput(true);
+            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 
-            OutputStream os = conn.getOutputStream();
-            BufferedWriter writer = new BufferedWriter( new OutputStreamWriter(os, "UTF-8"));
-            writer.write(localbitcoinsApiRequest.requestParams);
-
-            writer.flush();
-            writer.close();
-            os.close();*/
             int responseCode=conn.getResponseCode();
 
             if (responseCode == HttpsURLConnection.HTTP_OK) {
@@ -143,7 +131,47 @@ public class LocalbitcoinsApiRequestTask extends AsyncTask<String, Integer, JSON
         return response;
     }
 
-    public String post(String requestURL,  HashMap<String, String> postDataParams) {
+    public String getSigned(String requestURL,  HashMap<String, String> authenticationParams) {
+        URL url;
+        String response = "";
+        try {
+            url = new URL(requestURL);
+
+
+            HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+            conn.setReadTimeout(15000);
+            conn.setConnectTimeout(15000);
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+            for(Map.Entry<String, String> entry : authenticationParams.entrySet()){
+                conn.setRequestProperty(URLEncoder.encode(entry.getKey(), "UTF-8"),
+                        URLEncoder.encode(entry.getValue(), "UTF-8"));
+            }
+            conn.setDoInput(true);
+            conn.setDoOutput(true);
+
+            int responseCode=conn.getResponseCode();
+
+            if (responseCode == HttpsURLConnection.HTTP_OK) {
+                String line;
+                BufferedReader br=new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                while ((line=br.readLine()) != null) {
+                    response+=line;
+                }
+            }
+            else {
+                response="";
+
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return response;
+    }
+
+    public String post(String requestURL) {
         URL url;
         String response = "";
         try {
@@ -156,10 +184,56 @@ public class LocalbitcoinsApiRequestTask extends AsyncTask<String, Integer, JSON
             conn.setDoInput(true);
             conn.setDoOutput(true);
 
+            OutputStream os = conn.getOutputStream();
+            BufferedWriter writer = new BufferedWriter( new OutputStreamWriter(os, "UTF-8"));
+            //TODO: Create simple way to post params
+            writer.write("");
+
+            writer.flush();
+            writer.close();
+            os.close();
+            int responseCode=conn.getResponseCode();
+
+            if (responseCode == HttpsURLConnection.HTTP_OK) {
+                String line;
+                BufferedReader br=new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                while ((line=br.readLine()) != null) {
+                    response+=line;
+                }
+            }
+            else {
+                response="";
+
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return response;
+    }
+
+    public String postSigned(String requestURL,  HashMap<String, String> authenticationParams) {
+        URL url;
+        String response = "";
+        try {
+            url = new URL(requestURL);
+
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setReadTimeout(15000);
+            conn.setConnectTimeout(15000);
+            conn.setRequestMethod("POST");
+
+            for(Map.Entry<String, String> entry : authenticationParams.entrySet()){
+                conn.setRequestProperty(URLEncoder.encode(entry.getKey(), "UTF-8"),
+                        URLEncoder.encode(entry.getValue(), "UTF-8"));
+            }
+            conn.setDoInput(true);
+            conn.setDoOutput(true);
 
             OutputStream os = conn.getOutputStream();
             BufferedWriter writer = new BufferedWriter( new OutputStreamWriter(os, "UTF-8"));
-            writer.write(getRequestDataString(postDataParams));
+            //TODO: Create simple way to post params
+            writer.write("");
 
             writer.flush();
             writer.close();

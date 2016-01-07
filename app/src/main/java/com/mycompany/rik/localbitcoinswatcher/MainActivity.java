@@ -24,6 +24,8 @@ import com.mycompany.rik.localbitcoinswatcher.localbitcoinsapi.LocalbitcoinsApiC
 import com.mycompany.rik.localbitcoinswatcher.localbitcoinsapi.LocalbitcoinsApiListener;
 import com.mycompany.rik.localbitcoinswatcher.localbitcoinsapi.LocalbitcoinsApiRequest;
 import com.mycompany.rik.localbitcoinswatcher.localbitcoinsapi.LocalbitcoinsApiRequestTask;
+import com.mycompany.rik.localbitcoinswatcher.localbitcoinsapi.marketinfo.Ad;
+import com.mycompany.rik.localbitcoinswatcher.localbitcoinsapi.marketinfo.SellingInfo;
 
 import org.json.JSONObject;
 
@@ -52,12 +54,20 @@ public class MainActivity extends Activity
         mNavigationDrawerFragment.setUp( R.id.navigation_drawer, (DrawerLayout) findViewById(R.id.drawer_layout));
 
         try {
-            LocalbitcoinsApiRequest localbitcoinsApiRequest = LocalbitcoinsApiRequest.createLocalbitcoinsApiRequest(new LocalbitcoinsApiConfig(), "/sell-bitcoins-online/.json", "", LocalbitcoinsApiRequestTask.RequestType.GET);
+            LocalbitcoinsApiRequest localbitcoinsApiRequest = LocalbitcoinsApiRequest.createLocalbitcoinsApiRequest(new LocalbitcoinsApiConfig(),
+                    "/sell-bitcoins-online/.json",
+                    "",
+                    LocalbitcoinsApiRequestTask.RequestType.GET);
+
             LocalbitcoinsApiRequestTask localbitcoinsApiRequestTask = new LocalbitcoinsApiRequestTask(localbitcoinsApiRequest);
             localbitcoinsApiRequestTask.setLocalbitcoinsApiListener(new LocalbitcoinsApiListener() {
                 @Override
-                public void JSONFetched(JSONObject jsonObject) {
-                    Log.d("Request", "done");
+                public void JSONFetched(String json) {
+                    SellingInfo sellingInfo = SellingInfo.createSellingInfoFromJson(json);
+
+                    for(Ad ad: sellingInfo.data.ad_list){
+                        Log.d("Request", ad.data.profile.name);
+                    }
                 }
             });
             localbitcoinsApiRequestTask.execute();
@@ -83,7 +93,6 @@ public class MainActivity extends Activity
                 fragmentManager.beginTransaction().replace(R.id.container, PlaceholderFragment.newInstance(position + 1)) .commit();
                 break;
         }
-
     }
 
     public void onSectionAttached(int number) {
